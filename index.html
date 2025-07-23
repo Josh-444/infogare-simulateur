@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Panneau Infogare Style SNCF</title>
+  <title>Infogare Dynamique</title>
   <style>
     body {
       margin: 0;
@@ -13,13 +13,38 @@
     }
     h1 {
       text-align: center;
-      color: #fff;
       padding: 1rem;
+    }
+    .form-container {
+      background: #111;
+      padding: 1rem;
+      margin: auto;
+      width: 90%;
+      max-width: 800px;
+      border-radius: 8px;
+    }
+    .form-container input {
+      width: 100%;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      font-size: 1rem;
+      background: #222;
+      border: 1px solid #444;
+      color: #fff;
+    }
+    .form-container button {
+      padding: 0.7rem 1.2rem;
+      background: #00ff66;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      width: 100%;
     }
     .infogare {
       width: 90%;
       max-width: 1000px;
-      margin: auto;
+      margin: 2rem auto;
       border-collapse: collapse;
       font-size: 1.3rem;
     }
@@ -58,16 +83,14 @@
       font-size: 0.9rem;
       margin-right: 0.5rem;
     }
-    .message {
-      margin: 2rem auto;
-      background: #ffcc00;
-      color: #000;
-      font-weight: bold;
-      width: 90%;
-      max-width: 1000px;
-      padding: 1rem;
-      font-size: 1rem;
-      border-radius: 4px;
+    .gares-defilantes {
+      overflow: hidden;
+      white-space: nowrap;
+      animation: defilement 10s linear infinite;
+    }
+    @keyframes defilement {
+      from { transform: translateX(100%); }
+      to { transform: translateX(-100%); }
     }
     .footer-time {
       text-align: right;
@@ -78,7 +101,16 @@
   </style>
 </head>
 <body>
-  <h1>Panneau Infogare RER B (Simulation)</h1>
+  <h1>🎛️ Panneau Infogare Dynamique (style SNCF)</h1>
+
+  <div class="form-container">
+    <input type="text" id="train" placeholder="Numéro du train (ex: PAPY)" />
+    <input type="text" id="heure" placeholder="Heure (ex: 07:00)" />
+    <input type="text" id="destination" placeholder="Destination (ex: Orsay Ville)" />
+    <input type="text" id="gares" placeholder="Gares desservies (séparées par virgule)" />
+    <input type="text" id="voie" placeholder="Voie (ex: 4)" />
+    <button onclick="ajouterTrain()">Ajouter au panneau</button>
+  </div>
 
   <table class="infogare">
     <thead>
@@ -90,55 +122,10 @@
         <th>Voie</th>
       </tr>
     </thead>
-    <tbody>
-      <tr>
-        <td><span class="rer-icon">B</span>PAPY</td>
-        <td class="heure">06:54</td>
-        <td>Saint-Rémy lès Chevreuse</td>
-        <td>Palaiseau, Villebon, Lozère</td>
-        <td><span class="voie">5</span></td>
-      </tr>
-      <tr>
-        <td><span class="rer-icon">B</span>LBAU</td>
-        <td class="heure">07:00</td>
-        <td>Orsay Ville</td>
-        <td>Bagneux, Bourg-la-Reine, Antony</td>
-        <td><span class="voie">4</span></td>
-      </tr>
-      <tr>
-        <td><span class="rer-icon">B</span>SVIC</td>
-        <td class="heure">07:01</td>
-        <td>Robinson</td>
-        <td>Fontenay-aux-Roses, Sceaux</td>
-        <td><span class="voie">5</span></td>
-      </tr>
-      <tr>
-        <td><span class="rer-icon">B</span>KFAR</td>
-        <td class="heure">07:03</td>
-        <td>Massy Palaiseau</td>
-        <td>Le Guichet, Palaiseau</td>
-        <td><span class="voie">2</span></td>
-      </tr>
-      <tr>
-        <td><span class="rer-icon">B</span>LETO</td>
-        <td class="heure">07:07</td>
-        <td>Orsay Ville</td>
-        <td>Bagneux, La Croix de Berny</td>
-        <td><span class="voie">4</span></td>
-      </tr>
-      <tr>
-        <td><span class="rer-icon">B</span>PJAB</td>
-        <td class="heure">07:08</td>
-        <td>Saint-Rémy lès Chevreuse</td>
-        <td>Gif-sur-Yvette, Courcelle</td>
-        <td><span class="voie">2</span></td>
-      </tr>
+    <tbody id="table-body">
+      <!-- Les lignes vont s'ajouter ici -->
     </tbody>
   </table>
-
-  <div class="message">
-    ⚠️ Ligne K – Mardi 20 octobre 2009, mouvement social. Prévoir 3 trains vers Paris le matin et 4 vers Crépy le soir. Bus mis en place entre Mitry et Crépy.
-  </div>
 
   <div class="footer-time" id="currentTime">Heure actuelle : --:--:--</div>
 
@@ -149,6 +136,38 @@
     }
     setInterval(updateTime, 1000);
     updateTime();
+
+    function ajouterTrain() {
+      const train = document.getElementById('train').value.trim();
+      const heure = document.getElementById('heure').value.trim();
+      const destination = document.getElementById('destination').value.trim();
+      const gares = document.getElementById('gares').value.trim();
+      const voie = document.getElementById('voie').value.trim();
+
+      if (!train || !heure || !destination || !voie) {
+        alert('Merci de remplir tous les champs requis.');
+        return;
+      }
+
+      const tbody = document.getElementById('table-body');
+      const row = document.createElement('tr');
+
+      row.innerHTML = `
+        <td><span class="rer-icon">B</span>${train}</td>
+        <td class="heure">${heure}</td>
+        <td>${destination}</td>
+        <td><div class="gares-defilantes">${gares}</div></td>
+        <td><span class="voie">${voie}</span></td>
+      `;
+
+      tbody.appendChild(row);
+
+      document.getElementById('train').value = '';
+      document.getElementById('heure').value = '';
+      document.getElementById('destination').value = '';
+      document.getElementById('gares').value = '';
+      document.getElementById('voie').value = '';
+    }
   </script>
 </body>
 </html>
