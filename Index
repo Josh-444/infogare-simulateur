@@ -1,0 +1,129 @@
+index.html 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulateur Infogare</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: monospace;
+      background-color: #000;
+      color: #00ff66;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-top: 1rem;
+      color: #ffffff;
+    }
+    .form {
+      margin: 1rem;
+      padding: 1rem;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+    }
+    .form label {
+      display: block;
+      margin: 0.5rem 0 0.2rem;
+    }
+    .form input, .form select {
+      width: 100%;
+      padding: 0.4rem;
+      background: #222;
+      border: 1px solid #444;
+      color: #0f0;
+      font-family: monospace;
+    }
+    .display {
+      margin-top: 2rem;
+      padding: 2rem;
+      background: #000;
+      border: 2px solid #00ff66;
+      font-size: 1.5rem;
+      width: 90%;
+      max-width: 600px;
+      text-align: center;
+      line-height: 2.5rem;
+      letter-spacing: 2px;
+    }
+    .time {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛤️ Simulateur de Panneau Infogare</h1>
+
+  <div class="form">
+    <label for="destination">Destination</label>
+    <input type="text" id="destination" placeholder="Ex : Lyon Part-Dieu" />
+
+    <label for="voie">Voie</label>
+    <input type="text" id="voie" placeholder="Ex : A" />
+
+    <label for="trainType">Type de train</label>
+    <select id="trainType">
+      <option value="TGV">TGV</option>
+      <option value="TER">TER</option>
+      <option value="INTERCITÉS">INTERCITÉS</option>
+      <option value="OUIGO">OUIGO</option>
+    </select>
+
+    <label for="statut">Statut</label>
+    <select id="statut">
+      <option value="À l'heure">À l'heure</option>
+      <option value="Retardé">Retardé</option>
+      <option value="Supprimé">Supprimé</option>
+    </select>
+
+    <label for="message">Message (optionnel)</label>
+    <input type="text" id="message" placeholder="Ex : Retard estimé 15 min" />
+
+    <button onclick="updateDisplay()" style="margin-top:1rem; padding:0.5rem 1rem; font-weight:bold; background:#00ff66; color:#000; border:none; cursor:pointer;">Afficher</button>
+  </div>
+
+  <div class="display" id="panel">
+    <div class="time" id="clock">--:--:--</div>
+    <div id="line1">TRAIN - - -</div>
+    <div id="line2">DESTINATION</div>
+    <div id="line3">VOIE - -</div>
+    <div id="line4">STATUT</div>
+    <div id="line5"></div>
+  </div>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('fr-FR');
+      document.getElementById("clock").textContent = timeStr;
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function updateDisplay() {
+      const dest = document.getElementById("destination").value || "";
+      const voie = document.getElementById("voie").value || "--";
+      const trainType = document.getElementById("trainType").value || "TRAIN";
+      const statut = document.getElementById("statut").value;
+      const message = document.getElementById("message").value || "";
+
+      document.getElementById("line1").textContent = trainType;
+      document.getElementById("line2").textContent = dest.toUpperCase();
+      document.getElementById("line3").textContent = "VOIE " + voie.toUpperCase();
+      document.getElementById("line4").textContent = statut.toUpperCase();
+      document.getElementById("line5").textContent = message;
+    }
+  </script>
+</body>
+</html>
