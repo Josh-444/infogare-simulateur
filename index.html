@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Infogare Dynamique</title>
+  <title>Infogare Dynamique Éditable</title>
   <style>
     body {
       margin: 0;
@@ -101,7 +101,7 @@
   </style>
 </head>
 <body>
-  <h1>🎛️ Panneau Infogare Dynamique (style SNCF)</h1>
+  <h1>🎛️ Panneau Infogare Dynamique (Éditable)</h1>
 
   <div class="form-container">
     <input type="text" id="train" placeholder="Numéro du train (ex: PAPY)" />
@@ -120,10 +120,10 @@
         <th>Destination</th>
         <th>Gares desservies</th>
         <th>Voie</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody id="table-body">
-      <!-- Les lignes vont s'ajouter ici -->
     </tbody>
   </table>
 
@@ -136,6 +136,8 @@
     }
     setInterval(updateTime, 1000);
     updateTime();
+
+    let editingIndex = -1;
 
     function ajouterTrain() {
       const train = document.getElementById('train').value.trim();
@@ -150,23 +152,52 @@
       }
 
       const tbody = document.getElementById('table-body');
-      const row = document.createElement('tr');
 
-      row.innerHTML = `
-        <td><span class="rer-icon">B</span>${train}</td>
-        <td class="heure">${heure}</td>
-        <td>${destination}</td>
-        <td><div class="gares-defilantes">${gares}</div></td>
-        <td><span class="voie">${voie}</span></td>
-      `;
-
-      tbody.appendChild(row);
+      if (editingIndex !== -1) {
+        const rows = tbody.getElementsByTagName('tr');
+        const row = rows[editingIndex];
+        row.innerHTML = `
+          <td><span class="rer-icon">B</span>${train}</td>
+          <td class="heure">${heure}</td>
+          <td>${destination}</td>
+          <td><div class="gares-defilantes">${gares}</div></td>
+          <td><span class="voie">${voie}</span></td>
+          <td><button onclick="modifierTrain(${editingIndex})">✏️</button></td>
+        `;
+        editingIndex = -1;
+        document.querySelector('.form-container button').textContent = 'Ajouter au panneau';
+      } else {
+        const row = document.createElement('tr');
+        const index = tbody.children.length;
+        row.innerHTML = `
+          <td><span class="rer-icon">B</span>${train}</td>
+          <td class="heure">${heure}</td>
+          <td>${destination}</td>
+          <td><div class="gares-defilantes">${gares}</div></td>
+          <td><span class="voie">${voie}</span></td>
+          <td><button onclick="modifierTrain(${index})">✏️</button></td>
+        `;
+        tbody.appendChild(row);
+      }
 
       document.getElementById('train').value = '';
       document.getElementById('heure').value = '';
       document.getElementById('destination').value = '';
       document.getElementById('gares').value = '';
       document.getElementById('voie').value = '';
+    }
+
+    function modifierTrain(index) {
+      const tbody = document.getElementById('table-body');
+      const row = tbody.children[index];
+      const cells = row.children;
+      document.getElementById('train').value = cells[0].innerText.replace("B", "").trim();
+      document.getElementById('heure').value = cells[1].innerText.trim();
+      document.getElementById('destination').value = cells[2].innerText.trim();
+      document.getElementById('gares').value = cells[3].innerText.trim();
+      document.getElementById('voie').value = cells[4].innerText.trim();
+      editingIndex = index;
+      document.querySelector('.form-container button').textContent = 'Mettre à jour';
     }
   </script>
 </body>
