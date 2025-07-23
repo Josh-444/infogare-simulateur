@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Infogare Dynamique Éditable</title>
+  <title>Infogare avec Sauvegarde</title>
   <style>
     body {
       margin: 0;
@@ -40,6 +40,7 @@
       border: none;
       cursor: pointer;
       width: 100%;
+      margin-bottom: 0.5rem;
     }
     .infogare {
       width: 90%;
@@ -101,7 +102,7 @@
   </style>
 </head>
 <body>
-  <h1>🎛️ Panneau Infogare Dynamique (Éditable)</h1>
+  <h1>🎛️ Panneau Infogare (avec sauvegarde)</h1>
 
   <div class="form-container">
     <input type="text" id="train" placeholder="Numéro du train (ex: PAPY)" />
@@ -110,6 +111,8 @@
     <input type="text" id="gares" placeholder="Gares desservies (séparées par virgule)" />
     <input type="text" id="voie" placeholder="Voie (ex: 4)" />
     <button onclick="ajouterTrain()">Ajouter au panneau</button>
+    <button onclick="exporter()">📁 Exporter les données</button>
+    <input type="file" accept=".json" onchange="importer(event)">
   </div>
 
   <table class="infogare">
@@ -135,7 +138,41 @@
       document.getElementById('currentTime').textContent = 'Heure actuelle : ' + now.toLocaleTimeString('fr-FR');
     }
     setInterval(updateTime, 1000);
-    updateTime();
+
+    window.onload = function () {
+      chargerTrains();
+      updateTime();
+    };
+
+    function enregistrerTrains() {
+      localStorage.setItem('trains', document.getElementById('table-body').innerHTML);
+    }
+
+    function chargerTrains() {
+      const saved = localStorage.getItem('trains');
+      if (saved) {
+        document.getElementById('table-body').innerHTML = saved;
+      }
+    }
+
+    function exporter() {
+      const trains = document.getElementById('table-body').innerHTML;
+      const blob = new Blob([JSON.stringify({ html: trains })], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "trains.json";
+      link.click();
+    }
+
+    function importer(event) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const data = JSON.parse(reader.result);
+        document.getElementById('table-body').innerHTML = data.html;
+        enregistrerTrains();
+      };
+      reader.readAsText(event.target.files[0]);
+    }
 
     let editingIndex = -1;
 
@@ -179,6 +216,8 @@
         `;
         tbody.appendChild(row);
       }
+
+      enregistrerTrains();
 
       document.getElementById('train').value = '';
       document.getElementById('heure').value = '';
