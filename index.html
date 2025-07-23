@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Infogare avec Sauvegarde</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Infogare CSV</title>
   <style>
     body {
       margin: 0;
@@ -23,31 +23,25 @@
       max-width: 800px;
       border-radius: 8px;
     }
-    .form-container input {
+    .form-container input, .form-container button {
       width: 100%;
       margin-bottom: 0.5rem;
       padding: 0.5rem;
       font-size: 1rem;
-      background: #222;
-      border: 1px solid #444;
-      color: #fff;
     }
     .form-container button {
-      padding: 0.7rem 1.2rem;
       background: #00ff66;
       color: #000;
       font-weight: bold;
       border: none;
       cursor: pointer;
-      width: 100%;
-      margin-bottom: 0.5rem;
     }
     .infogare {
       width: 90%;
       max-width: 1000px;
       margin: 2rem auto;
       border-collapse: collapse;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
     }
     .infogare th, .infogare td {
       padding: 0.5rem;
@@ -65,12 +59,10 @@
     .heure {
       color: #ffff33;
       font-weight: bold;
-      font-size: 1.2rem;
     }
     .voie {
       background-color: #fff;
       color: #000;
-      font-weight: bold;
       padding: 0.3rem 0.6rem;
       border-radius: 5px;
     }
@@ -78,10 +70,8 @@
       display: inline-block;
       background: #fff;
       color: #0033cc;
-      font-weight: bold;
       padding: 0.2rem 0.4rem;
       border-radius: 50%;
-      font-size: 0.9rem;
       margin-right: 0.5rem;
     }
     .gares-defilantes {
@@ -95,14 +85,13 @@
     }
     .footer-time {
       text-align: right;
-      color: #fff;
-      font-size: 1.1rem;
       margin-right: 5%;
+      font-size: 1.1rem;
     }
   </style>
 </head>
 <body>
-  <h1>🎛️ Panneau Infogare (avec sauvegarde)</h1>
+  <h1>🚆 Infogare (CSV + Supprimer)</h1>
 
   <div class="form-container">
     <input type="text" id="train" placeholder="Numéro du train (ex: PAPY)" />
@@ -110,9 +99,9 @@
     <input type="text" id="destination" placeholder="Destination (ex: Orsay Ville)" />
     <input type="text" id="gares" placeholder="Gares desservies (séparées par virgule)" />
     <input type="text" id="voie" placeholder="Voie (ex: 4)" />
-    <button onclick="ajouterTrain()">Ajouter au panneau</button>
-    <button onclick="exporter()">📁 Exporter les données</button>
-    <input type="file" accept=".json" onchange="importer(event)">
+    <button onclick="ajouterTrain()">Ajouter ou Mettre à jour</button>
+    <button onclick="exporterCSV()">📄 Exporter en CSV</button>
+    <input type="file" accept=".csv" onchange="importerCSV(event)">
   </div>
 
   <table class="infogare">
@@ -126,8 +115,7 @@
         <th>Actions</th>
       </tr>
     </thead>
-    <tbody id="table-body">
-    </tbody>
+    <tbody id="table-body"></tbody>
   </table>
 
   <div class="footer-time" id="currentTime">Heure actuelle : --:--:--</div>
@@ -138,11 +126,7 @@
       document.getElementById('currentTime').textContent = 'Heure actuelle : ' + now.toLocaleTimeString('fr-FR');
     }
     setInterval(updateTime, 1000);
-
-    window.onload = function () {
-      chargerTrains();
-      updateTime();
-    };
+    window.onload = () => { updateTime(); chargerTrains(); };
 
     function enregistrerTrains() {
       localStorage.setItem('trains', document.getElementById('table-body').innerHTML);
@@ -155,23 +139,51 @@
       }
     }
 
-    function exporter() {
-      const trains = document.getElementById('table-body').innerHTML;
-      const blob = new Blob([JSON.stringify({ html: trains })], { type: "application/json" });
+    function exporterCSV() {
+      const rows = document.querySelectorAll('#table-body tr');
+      let csv = "train,heure,destination,gares,voie\n";
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const train = cells[0].innerText.replace("B", "").trim();
+        const heure = cells[1].innerText.trim();
+        const destination = cells[2].innerText.trim();
+        const gares = cells[3].innerText.trim();
+        const voie = cells[4].innerText.trim();
+        csv += `"${train}","${heure}","${destination}","${gares}","${voie}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = "trains.json";
+      link.download = "trains.csv";
       link.click();
     }
 
-    function importer(event) {
+    function importerCSV(event) {
+      const file = event.target.files[0];
       const reader = new FileReader();
       reader.onload = function () {
-        const data = JSON.parse(reader.result);
-        document.getElementById('table-body').innerHTML = data.html;
+        const lines = reader.result.split("\n").slice(1);
+        let html = "";
+        lines.forEach((line, index) => {
+          if (!line.trim()) return;
+          const [train, heure, destination, gares, voie] = line.split(",").map(v => v.replace(/(^"|"$)/g, "").trim());
+          html += `
+<tr>
+  <td><span class="rer-icon">B</span>${train}</td>
+  <td class="heure">${heure}</td>
+  <td>${destination}</td>
+  <td><div class="gares-defilantes">${gares}</div></td>
+  <td><span class="voie">${voie}</span></td>
+  <td>
+    <button onclick="modifierTrain(${index})">✏️</button>
+    <button onclick="supprimerTrain(${index})">🗑️</button>
+  </td>
+</tr>`;
+        });
+        document.getElementById('table-body').innerHTML = html;
         enregistrerTrains();
       };
-      reader.readAsText(event.target.files[0]);
+      reader.readAsText(file);
     }
 
     let editingIndex = -1;
@@ -184,36 +196,29 @@
       const voie = document.getElementById('voie').value.trim();
 
       if (!train || !heure || !destination || !voie) {
-        alert('Merci de remplir tous les champs requis.');
+        alert('Tous les champs doivent être remplis.');
         return;
       }
 
       const tbody = document.getElementById('table-body');
 
+      const newRow = `
+        <td><span class="rer-icon">B</span>${train}</td>
+        <td class="heure">${heure}</td>
+        <td>${destination}</td>
+        <td><div class="gares-defilantes">${gares}</div></td>
+        <td><span class="voie">${voie}</span></td>
+        <td>
+          <button onclick="modifierTrain(${editingIndex !== -1 ? editingIndex : tbody.children.length})">✏️</button>
+          <button onclick="supprimerTrain(${editingIndex !== -1 ? editingIndex : tbody.children.length})">🗑️</button>
+        </td>`;
+
       if (editingIndex !== -1) {
-        const rows = tbody.getElementsByTagName('tr');
-        const row = rows[editingIndex];
-        row.innerHTML = `
-          <td><span class="rer-icon">B</span>${train}</td>
-          <td class="heure">${heure}</td>
-          <td>${destination}</td>
-          <td><div class="gares-defilantes">${gares}</div></td>
-          <td><span class="voie">${voie}</span></td>
-          <td><button onclick="modifierTrain(${editingIndex})">✏️</button></td>
-        `;
+        tbody.children[editingIndex].innerHTML = newRow;
         editingIndex = -1;
-        document.querySelector('.form-container button').textContent = 'Ajouter au panneau';
       } else {
         const row = document.createElement('tr');
-        const index = tbody.children.length;
-        row.innerHTML = `
-          <td><span class="rer-icon">B</span>${train}</td>
-          <td class="heure">${heure}</td>
-          <td>${destination}</td>
-          <td><div class="gares-defilantes">${gares}</div></td>
-          <td><span class="voie">${voie}</span></td>
-          <td><button onclick="modifierTrain(${index})">✏️</button></td>
-        `;
+        row.innerHTML = newRow;
         tbody.appendChild(row);
       }
 
@@ -227,8 +232,7 @@
     }
 
     function modifierTrain(index) {
-      const tbody = document.getElementById('table-body');
-      const row = tbody.children[index];
+      const row = document.getElementById('table-body').children[index];
       const cells = row.children;
       document.getElementById('train').value = cells[0].innerText.replace("B", "").trim();
       document.getElementById('heure').value = cells[1].innerText.trim();
@@ -236,7 +240,12 @@
       document.getElementById('gares').value = cells[3].innerText.trim();
       document.getElementById('voie').value = cells[4].innerText.trim();
       editingIndex = index;
-      document.querySelector('.form-container button').textContent = 'Mettre à jour';
+    }
+
+    function supprimerTrain(index) {
+      const tbody = document.getElementById('table-body');
+      tbody.removeChild(tbody.children[index]);
+      enregistrerTrains();
     }
   </script>
 </body>
