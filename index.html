@@ -3,249 +3,145 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Infogare CSV</title>
+  <title>Infogare - Départs & Arrivées CSV</title>
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
       background-color: #000;
       color: #fff;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding: 1rem;
     }
-    h1 {
+    .panel {
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .panel h2 {
       text-align: center;
+      margin: 0;
       padding: 1rem;
     }
-    .form-container {
-      background: #111;
-      padding: 1rem;
-      margin: auto;
-      width: 90%;
-      max-width: 800px;
-      border-radius: 8px;
-    }
-    .form-container input, .form-container button {
+    .departures { background-color: #002266; }
+    .departures h2 { background-color: #0044cc; color: #fff; }
+    .arrivals { background-color: #003300; }
+    .arrivals h2 { background-color: #00cc44; color: #000; }
+    table {
       width: 100%;
-      margin-bottom: 0.5rem;
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    .form-container button {
-      background: #00ff66;
-      color: #000;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-    }
-    .infogare {
-      width: 90%;
-      max-width: 1000px;
-      margin: 2rem auto;
       border-collapse: collapse;
-      font-size: 1.2rem;
+      color: #fff;
     }
-    .infogare th, .infogare td {
+    th, td {
       padding: 0.5rem;
       border: 1px solid #222;
       text-align: center;
     }
-    .infogare th {
-      background-color: #0033cc;
-      color: #fff;
+    th {
+      background-color: #111;
     }
-    .infogare td {
-      background-color: #0055ff;
-      color: #fff;
-    }
-    .heure {
-      color: #ffff33;
-      font-weight: bold;
-    }
+    .heure { color: #ffff33; font-weight: bold; }
     .voie {
       background-color: #fff;
       color: #000;
       padding: 0.3rem 0.6rem;
       border-radius: 5px;
     }
-    .rer-icon {
-      display: inline-block;
-      background: #fff;
-      color: #0033cc;
-      padding: 0.2rem 0.4rem;
-      border-radius: 50%;
-      margin-right: 0.5rem;
-    }
     .gares-defilantes {
       overflow: hidden;
       white-space: nowrap;
-      animation: defilement 10s linear infinite;
+      animation: defilement 12s linear infinite;
     }
     @keyframes defilement {
       from { transform: translateX(100%); }
       to { transform: translateX(-100%); }
     }
-    .footer-time {
+    .footer {
+      grid-column: span 2;
       text-align: right;
-      margin-right: 5%;
-      font-size: 1.1rem;
+      font-size: 1.2rem;
+      padding-top: 1rem;
+    }
+    .import {
+      grid-column: span 2;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    input[type="file"] {
+      margin: 0.5rem;
+      padding: 0.5rem;
+      font-size: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1>🚆 Infogare (CSV + Supprimer)</h1>
-
-  <div class="form-container">
-    <input type="text" id="train" placeholder="Numéro du train (ex: PAPY)" />
-    <input type="text" id="heure" placeholder="Heure (ex: 07:00)" />
-    <input type="text" id="destination" placeholder="Destination (ex: Orsay Ville)" />
-    <input type="text" id="gares" placeholder="Gares desservies (séparées par virgule)" />
-    <input type="text" id="voie" placeholder="Voie (ex: 4)" />
-    <button onclick="ajouterTrain()">Ajouter ou Mettre à jour</button>
-    <button onclick="exporterCSV()">📄 Exporter en CSV</button>
-    <input type="file" accept=".csv" onchange="importerCSV(event)">
+  <div class="import">
+    <label>
+      📤 Importer CSV Départs :
+      <input type="file" accept=".csv" onchange="importerCSV(event, 'departures-body')">
+    </label>
+    <label>
+      📥 Importer CSV Arrivées :
+      <input type="file" accept=".csv" onchange="importerCSV(event, 'arrivals-body')">
+    </label>
   </div>
 
-  <table class="infogare">
-    <thead>
-      <tr>
-        <th>Train</th>
-        <th>Heure</th>
-        <th>Destination</th>
-        <th>Gares desservies</th>
-        <th>Voie</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="table-body"></tbody>
-  </table>
+  <div class="panel departures">
+    <h2>🚆 Départs</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Train</th><th>Heure</th><th>Destination</th><th>Gares</th><th>Voie</th>
+        </tr>
+      </thead>
+      <tbody id="departures-body"></tbody>
+    </table>
+  </div>
 
-  <div class="footer-time" id="currentTime">Heure actuelle : --:--:--</div>
+  <div class="panel arrivals">
+    <h2>🟢 Arrivées</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Train</th><th>Heure</th><th>Origine</th><th>Gares</th><th>Voie</th>
+        </tr>
+      </thead>
+      <tbody id="arrivals-body"></tbody>
+    </table>
+  </div>
+
+  <div class="footer" id="clock">Heure actuelle : --:--:--</div>
 
   <script>
-    function updateTime() {
+    function updateClock() {
       const now = new Date();
-      document.getElementById('currentTime').textContent = 'Heure actuelle : ' + now.toLocaleTimeString('fr-FR');
+      document.getElementById('clock').textContent = 'Heure actuelle : ' + now.toLocaleTimeString('fr-FR');
     }
-    setInterval(updateTime, 1000);
-    window.onload = () => { updateTime(); chargerTrains(); };
+    setInterval(updateClock, 1000);
+    updateClock();
 
-    function enregistrerTrains() {
-      localStorage.setItem('trains', document.getElementById('table-body').innerHTML);
-    }
-
-    function chargerTrains() {
-      const saved = localStorage.getItem('trains');
-      if (saved) {
-        document.getElementById('table-body').innerHTML = saved;
-      }
-    }
-
-    function exporterCSV() {
-      const rows = document.querySelectorAll('#table-body tr');
-      let csv = "train,heure,destination,gares,voie\n";
-      rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const train = cells[0].innerText.replace("B", "").trim();
-        const heure = cells[1].innerText.trim();
-        const destination = cells[2].innerText.trim();
-        const gares = cells[3].innerText.trim();
-        const voie = cells[4].innerText.trim();
-        csv += `"${train}","${heure}","${destination}","${gares}","${voie}"\n`;
-      });
-      const blob = new Blob([csv], { type: "text/csv" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "trains.csv";
-      link.click();
-    }
-
-    function importerCSV(event) {
+    function importerCSV(event, targetId) {
       const file = event.target.files[0];
       const reader = new FileReader();
       reader.onload = function () {
         const lines = reader.result.split("\n").slice(1);
         let html = "";
-        lines.forEach((line, index) => {
+        lines.forEach(line => {
           if (!line.trim()) return;
-          const [train, heure, destination, gares, voie] = line.split(",").map(v => v.replace(/(^"|"$)/g, "").trim());
+          const [train, heure, lieu, gares, voie] = line.split(",").map(v => v.replace(/(^"|"$)/g, "").trim());
           html += `
 <tr>
-  <td><span class="rer-icon">B</span>${train}</td>
+  <td>${train}</td>
   <td class="heure">${heure}</td>
-  <td>${destination}</td>
+  <td>${lieu}</td>
   <td><div class="gares-defilantes">${gares}</div></td>
   <td><span class="voie">${voie}</span></td>
-  <td>
-    <button onclick="modifierTrain(${index})">✏️</button>
-    <button onclick="supprimerTrain(${index})">🗑️</button>
-  </td>
 </tr>`;
         });
-        document.getElementById('table-body').innerHTML = html;
-        enregistrerTrains();
+        document.getElementById(targetId).innerHTML = html;
       };
       reader.readAsText(file);
-    }
-
-    let editingIndex = -1;
-
-    function ajouterTrain() {
-      const train = document.getElementById('train').value.trim();
-      const heure = document.getElementById('heure').value.trim();
-      const destination = document.getElementById('destination').value.trim();
-      const gares = document.getElementById('gares').value.trim();
-      const voie = document.getElementById('voie').value.trim();
-
-      if (!train || !heure || !destination || !voie) {
-        alert('Tous les champs doivent être remplis.');
-        return;
-      }
-
-      const tbody = document.getElementById('table-body');
-
-      const newRow = `
-        <td><span class="rer-icon">B</span>${train}</td>
-        <td class="heure">${heure}</td>
-        <td>${destination}</td>
-        <td><div class="gares-defilantes">${gares}</div></td>
-        <td><span class="voie">${voie}</span></td>
-        <td>
-          <button onclick="modifierTrain(${editingIndex !== -1 ? editingIndex : tbody.children.length})">✏️</button>
-          <button onclick="supprimerTrain(${editingIndex !== -1 ? editingIndex : tbody.children.length})">🗑️</button>
-        </td>`;
-
-      if (editingIndex !== -1) {
-        tbody.children[editingIndex].innerHTML = newRow;
-        editingIndex = -1;
-      } else {
-        const row = document.createElement('tr');
-        row.innerHTML = newRow;
-        tbody.appendChild(row);
-      }
-
-      enregistrerTrains();
-
-      document.getElementById('train').value = '';
-      document.getElementById('heure').value = '';
-      document.getElementById('destination').value = '';
-      document.getElementById('gares').value = '';
-      document.getElementById('voie').value = '';
-    }
-
-    function modifierTrain(index) {
-      const row = document.getElementById('table-body').children[index];
-      const cells = row.children;
-      document.getElementById('train').value = cells[0].innerText.replace("B", "").trim();
-      document.getElementById('heure').value = cells[1].innerText.trim();
-      document.getElementById('destination').value = cells[2].innerText.trim();
-      document.getElementById('gares').value = cells[3].innerText.trim();
-      document.getElementById('voie').value = cells[4].innerText.trim();
-      editingIndex = index;
-    }
-
-    function supprimerTrain(index) {
-      const tbody = document.getElementById('table-body');
-      tbody.removeChild(tbody.children[index]);
-      enregistrerTrains();
     }
   </script>
 </body>
